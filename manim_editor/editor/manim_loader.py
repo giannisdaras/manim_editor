@@ -3,7 +3,7 @@ import os
 from fractions import Fraction
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-
+import numpy as np
 from .commands import valid_json_load, walk
 from .config import get_config
 from .presentation_classes import Scene, Section
@@ -47,11 +47,27 @@ def get_scene(path: Path, new_id: int) -> Optional[Scene]:
 def get_scenes() -> List[Scene]:
     """Search recursively in CWD for any valid JSON section index files."""
     scene_index_paths: List[Path] = []
+
+
+    file_names = []
     for root, _, files in walk(Path("."), get_config().RECURSION_DEPTH):
         for file in files:
             if file.endswith(".json"):
                 scene_index_paths.append(root / file)
-
+                file_names.append(file.split("/")[-1].split(".")[0])
+    try:
+        with open('scene_list.txt', 'r') as f:
+            contents = f.read()
+            ordering = contents.split('\n')[0].split(',')
+        indices = []
+        for file_name in ordering:
+            for index, found_name in enumerate(file_names):
+                if found_name == file_name:
+                    indices.append(index)
+    except:
+        print("File scene_list.txt missing ... Going with alphabetical ordering of Scenes")
+        indices = np.argsort(file_names).tolist()
+    scene_index_paths = np.array(scene_index_paths)[indices].tolist()
     scenes: List[Scene] = []
     for scene_index_path in scene_index_paths:
         scene = get_scene(scene_index_path, len(scenes))
